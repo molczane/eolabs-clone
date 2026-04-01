@@ -41,7 +41,7 @@ These are the execution defaults unless the user changes them later:
 - [x] P1. Shared ENVI utility layer
 - [x] P2. Spectral-library data model and rebuild logic
 - [x] P3. Viewer ROI workflow
-- [ ] P4. Airborne index pipeline
+- [x] P4. Airborne index pipeline
 - [ ] P5. Sentinel-2 acquisition pipeline
 - [ ] P6. Cross-sensor alignment and comparison
 - [ ] P7. SAM and calibration
@@ -441,11 +441,11 @@ Notebook sections to implement in this phase:
 
 Tasks:
 
-- [ ] P4.1 Implement the index functions.
-- [ ] P4.2 Add airborne band-selection logic by nearest wavelength.
-- [ ] P4.3 Add false-color composite helpers.
-- [ ] P4.4 Build the airborne-only notebook sections.
-- [ ] P4.5 Save selected airborne outputs into `data/outputs/airborne/<scene_id>/`
+- [x] P4.1 Implement the index functions.
+- [x] P4.2 Add airborne band-selection logic by nearest wavelength.
+- [x] P4.3 Add false-color composite helpers.
+- [x] P4.4 Build the airborne-only notebook sections.
+- [x] P4.5 Save selected airborne outputs into `data/outputs/airborne/<scene_id>/`
   if notebook code writes files.
 
 Done when:
@@ -457,6 +457,33 @@ Verification:
 
 - `python -m compileall src/lab5`
 - execute the airborne-only notebook cells manually
+
+P4 completion notes:
+
+- added `src/lab5/indices.py`
+- implemented:
+  - `safe_ratio(...)`
+  - `band_by_wavelength(...)`
+  - `chlorophyll_red_edge_peak(...)`
+  - `ndci(...)`
+  - `doc_proxy_green_red(...)`
+  - `ndti(...)`
+  - `composite_by_wavelengths(...)`
+  - `stretch_composite(...)`
+- added airborne nearest-wavelength band selection through
+  `src.lab5.envi_utils.find_nearest_band(...)`
+- created `notebooks/water_quality_analysis.ipynb`
+- the notebook now includes airborne-only sections for:
+  - scene selection and metadata summary
+  - natural RGB
+  - false-color composites
+  - airborne index maps
+  - histogram and descriptive statistics
+- no notebook files are written to `data/outputs/airborne/<scene_id>/` yet, so
+  P4.5 is satisfied by non-use rather than file generation
+- `python3 -m compileall src/lab5` passed
+- a `python3` full-scene airborne harness parsed the notebook JSON and executed
+  the same composite and index workflow used by the notebook
 
 ## Phase P5. Sentinel-2 Acquisition Pipeline
 

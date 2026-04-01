@@ -42,7 +42,7 @@ These are the execution defaults unless the user changes them later:
 - [x] P2. Spectral-library data model and rebuild logic
 - [x] P3. Viewer ROI workflow
 - [x] P4. Airborne index pipeline
-- [ ] P5. Sentinel-2 acquisition pipeline
+- [x] P5. Sentinel-2 acquisition pipeline
 - [ ] P6. Cross-sensor alignment and comparison
 - [ ] P7. SAM and calibration
 - [ ] P8. Final notebook and documentation polish
@@ -534,11 +534,11 @@ Required Sentinel-2 bands:
 
 Tasks:
 
-- [ ] P5.1 Implement STAC client and search logic.
-- [ ] P5.2 Implement item scoring and selection.
-- [ ] P5.3 Implement per-band download and caching.
-- [ ] P5.4 Implement reproject-to-grid logic matching the airborne scene extent.
-- [ ] P5.5 Add the Sentinel-2 acquisition section to the notebook.
+- [x] P5.1 Implement STAC client and search logic.
+- [x] P5.2 Implement item scoring and selection.
+- [x] P5.3 Implement per-band download and caching.
+- [x] P5.4 Implement reproject-to-grid logic matching the airborne scene extent.
+- [x] P5.5 Add the Sentinel-2 acquisition section to the notebook.
 
 Done when:
 
@@ -549,6 +549,23 @@ Verification:
 
 - dry run the search logic first
 - then verify that expected local files appear in `data/sentinel2/`
+
+P5 completion notes:
+
+- added `src/lab5/sentinel2.py` with Planetary Computer STAC access, ENVI scene
+  footprint-to-grid conversion, item scoring and selection, asset lookup,
+  reprojection, per-band caching, and local stack loading
+- extended `notebooks/water_quality_analysis.ipynb` with Sentinel-2 search,
+  selection, cache, and local-load cells using the shared module
+- `python3 -m compileall src/lab5` passed
+- offline harness passed for grid derivation, item scoring, selection, cache
+  naming, local stack loading, and notebook JSON validation
+- live Planetary Computer verification passed for the airborne footprint and
+  selected
+  `S2C_MSIL2A_20250615T095051_R079_T33UYR_20250615T122401`
+- verified cached local files under `data/sentinel2/` for `B03`, `B04`, `B05`,
+  `B06`, `B08`, and `B11`, each reopened successfully on the airborne grid with
+  shape `4300 x 2001`
 
 ## Phase P6. Cross-Sensor Alignment And Comparison
 

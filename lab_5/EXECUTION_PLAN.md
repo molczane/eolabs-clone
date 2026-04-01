@@ -43,7 +43,7 @@ These are the execution defaults unless the user changes them later:
 - [x] P3. Viewer ROI workflow
 - [x] P4. Airborne index pipeline
 - [x] P5. Sentinel-2 acquisition pipeline
-- [ ] P6. Cross-sensor alignment and comparison
+- [x] P6. Cross-sensor alignment and comparison
 - [ ] P7. SAM and calibration
 - [ ] P8. Final notebook and documentation polish
 
@@ -588,15 +588,15 @@ Alignment rules:
 
 Tasks:
 
-- [ ] P6.1 Define the comparison grid and overlap mask.
-- [ ] P6.2 Resample airborne index products to the comparison grid.
-- [ ] P6.3 Compute Sentinel-2 index products on the same grid.
-- [ ] P6.4 Build comparison plots:
+- [x] P6.1 Define the comparison grid and overlap mask.
+- [x] P6.2 Resample airborne index products to the comparison grid.
+- [x] P6.3 Compute Sentinel-2 index products on the same grid.
+- [x] P6.4 Build comparison plots:
   - side-by-side maps
   - scatter plots
   - histograms
   - summary stats table
-- [ ] P6.5 Save comparison outputs under
+- [x] P6.5 Save comparison outputs under
   `data/outputs/comparison/<scene_id>/`
 
 Done when:
@@ -608,6 +608,27 @@ Verification:
 - inspect overlap mask visually
 - confirm comparison arrays have identical shape
 - confirm statistics exclude masked pixels
+
+P6 completion notes:
+
+- extended `src/lab5/sentinel2.py` with local cache discovery, array-to-grid
+  alignment, overlap-mask construction, pairwise comparison statistics, and
+  comparison output directory helpers
+- rebuilt `notebooks/water_quality_analysis.ipynb` to include Sentinel-2 cache
+  fallback, shared-grid comparison setup, overlap-mask review, cross-sensor
+  plots, and saved comparison outputs
+- `python3 -m compileall src/lab5` passed
+- notebook JSON validation passed
+- end-to-end `python3` comparison harness passed against the cached Sentinel-2
+  stack in `data/sentinel2/`
+- verified identical comparison shapes of `4300 x 2001`, overlap mask size of
+  `3174220` valid pixels, and comparison statistics columns:
+  `index`, `valid_pixels`, `airborne_mean`, `sentinel_mean`,
+  `bias_s2_minus_airborne`, `mae`, `rmse`, `pearson_r`
+- verified saved outputs under
+  `data/outputs/comparison/221000_Odra_HS_Blok_A_008_VS_join_atm/`:
+  `comparison_maps.png`, `comparison_histograms.png`,
+  `comparison_scatter.png`, `comparison_stats.csv`, and `overlap_mask.png`
 
 ## Phase P7. SAM And Calibration
 

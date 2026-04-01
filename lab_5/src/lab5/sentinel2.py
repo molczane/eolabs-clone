@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 
@@ -316,6 +316,42 @@ def download_band(
     return local_path
 
 
+def find_cached_band_files(
+    save_dir: Path | str,
+    item_id: str | None = None,
+    required_bands: Sequence[str] = SENTINEL2_REQUIRED_BANDS,
+) -> dict[str, Path]:
+    save_path = Path(save_dir)
+    if not save_path.exists():
+        return {}
+
+    if item_id is not None:
+        candidate_prefixes = [str(item_id)]
+    else:
+        candidate_prefixes = sorted(
+            {
+                path.name.rsplit("__", 1)[0]
+                for path in save_path.glob("*__*.tif")
+            },
+            key=lambda prefix: max(
+                (candidate.stat().st_mtime for candidate in save_path.glob(f"{prefix}__*.tif")),
+                default=0.0,
+            ),
+            reverse=True,
+        )
+
+    required = tuple(str(band_name) for band_name in required_bands)
+    for prefix in candidate_prefixes:
+        band_files = {
+            band_name: save_path / f"{prefix}__{band_name}.tif"
+            for band_name in required
+        }
+        if all(path.exists() for path in band_files.values()):
+            return band_files
+
+    return {}
+
+
 def load_local_stack(band_files: Mapping[str, Path | str]) -> dict[str, np.ndarray]:
     rasterio, _, _, _, _, _ = _import_rasterio()
 
@@ -326,14 +362,140 @@ def load_local_stack(band_files: Mapping[str, Path | str]) -> dict[str, np.ndarr
     return stack
 
 
+def align_array_to_grid(
+    array: np.ndarray,
+    source_grid: TargetGrid,
+    target_grid: TargetGrid,
+    resampling=None,
+    nodata: float = np.nan,
+) -> np.ndarray:
+    _, _, _, Resampling, reproject, _ = _import_rasterio()
+
+    src_array = np.asarray(array, dtype=np.float32)
+    expected_shape = (source_grid.height, source_grid.width)
+    if src_array.shape != expected_shape:
+        raise ValueError(f"Array shape {src_array.shape} does not match source grid {expected_shape}.")
+
+    if (
+        source_grid.crs == target_grid.crs
+        and source_grid.transform == target_grid.transform
+        and source_grid.width == target_grid.width
+        and source_grid.height == target_grid.height
+    ):
+        return src_array.copy()
+
+    if resampling is None:
+        resampling = Resampling.bilinear
+
+    fill_value = -9999.0 if np.isnan(nodata) else float(nodata)
+    src_prepared = np.where(np.isfinite(src_array), src_array, fill_value).astype(np.float32, copy=False)
+    out = np.full((target_grid.height, target_grid.width), fill_value, dtype=np.float32)
+
+    reproject(
+        source=src_prepared,
+        destination=out,
+        src_transform=source_grid.transform,
+        src_crs=source_grid.crs,
+        dst_transform=target_grid.transform,
+        dst_crs=target_grid.crs,
+        resampling=resampling,
+        src_nodata=fill_value,
+        dst_nodata=fill_value,
+    )
+
+    if np.isnan(nodata):
+        out = out.astype(np.float32, copy=False)
+        out[out == fill_value] = np.nan
+
+    return out
+
+
+def build_overlap_mask(*product_groups: Mapping[str, np.ndarray]) -> np.ndarray:
+    overlap_mask: np.ndarray | None = None
+    expected_shape: tuple[int, int] | None = None
+
+    for product_group in product_groups:
+        for name, array in product_group.items():
+            arr = np.asarray(array)
+            if arr.ndim != 2:
+                raise ValueError(f"Product '{name}' must be 2-D, got shape {arr.shape}.")
+            if expected_shape is None:
+                expected_shape = arr.shape
+            elif arr.shape != expected_shape:
+                raise ValueError(f"Product '{name}' has shape {arr.shape}, expected {expected_shape}.")
+
+            finite_mask = np.isfinite(arr)
+            overlap_mask = finite_mask if overlap_mask is None else overlap_mask & finite_mask
+
+    if overlap_mask is None:
+        raise ValueError("At least one product group is required to build an overlap mask.")
+
+    return overlap_mask
+
+
+def summarize_pair(
+    airborne: np.ndarray,
+    sentinel: np.ndarray,
+    overlap_mask: np.ndarray,
+) -> dict[str, float]:
+    airborne_arr = np.asarray(airborne, dtype=np.float64)
+    sentinel_arr = np.asarray(sentinel, dtype=np.float64)
+    mask = np.asarray(overlap_mask, dtype=bool)
+
+    if airborne_arr.shape != sentinel_arr.shape:
+        raise ValueError(f"Shape mismatch: airborne {airborne_arr.shape}, sentinel {sentinel_arr.shape}.")
+    if airborne_arr.shape != mask.shape:
+        raise ValueError(f"Mask shape {mask.shape} does not match product shape {airborne_arr.shape}.")
+
+    airborne_values = airborne_arr[mask]
+    sentinel_values = sentinel_arr[mask]
+    delta = sentinel_values - airborne_values
+
+    if airborne_values.size == 0:
+        return {
+            "valid_pixels": 0,
+            "airborne_mean": np.nan,
+            "sentinel_mean": np.nan,
+            "bias_s2_minus_airborne": np.nan,
+            "mae": np.nan,
+            "rmse": np.nan,
+            "pearson_r": np.nan,
+        }
+
+    if airborne_values.size < 2 or np.std(airborne_values) == 0.0 or np.std(sentinel_values) == 0.0:
+        pearson_r = np.nan
+    else:
+        pearson_r = float(np.corrcoef(airborne_values, sentinel_values)[0, 1])
+
+    return {
+        "valid_pixels": int(airborne_values.size),
+        "airborne_mean": float(np.mean(airborne_values)),
+        "sentinel_mean": float(np.mean(sentinel_values)),
+        "bias_s2_minus_airborne": float(np.mean(delta)),
+        "mae": float(np.mean(np.abs(delta))),
+        "rmse": float(np.sqrt(np.mean(delta**2))),
+        "pearson_r": pearson_r,
+    }
+
+
+def comparison_output_dir(root_dir: Path | str, scene_id: str) -> Path:
+    output_dir = Path(root_dir) / "comparison" / str(scene_id)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
 __all__ = [
     "PLANETARY_COMPUTER_STAC_URL",
     "SENTINEL2_BAND_ALIASES",
     "SENTINEL2_COLLECTION",
     "SENTINEL2_REQUIRED_BANDS",
     "TargetGrid",
+    "align_array_to_grid",
+    "build_overlap_mask",
+    "comparison_output_dir",
     "describe_item",
     "download_band",
+    "find_cached_band_files",
     "get_asset_href",
     "load_local_stack",
     "open_catalog",
@@ -343,4 +505,5 @@ __all__ = [
     "score_item",
     "search_s2_items",
     "select_best_item",
+    "summarize_pair",
 ]

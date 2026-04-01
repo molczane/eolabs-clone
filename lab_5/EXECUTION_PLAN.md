@@ -40,7 +40,7 @@ These are the execution defaults unless the user changes them later:
 - [x] P0. Project scaffold and dependencies
 - [x] P1. Shared ENVI utility layer
 - [x] P2. Spectral-library data model and rebuild logic
-- [ ] P3. Viewer ROI workflow
+- [x] P3. Viewer ROI workflow
 - [ ] P4. Airborne index pipeline
 - [ ] P5. Sentinel-2 acquisition pipeline
 - [ ] P6. Cross-sensor alignment and comparison
@@ -364,14 +364,14 @@ Minimum ROI export metadata:
 
 Tasks:
 
-- [ ] P3.1 Add rectangle ROI selection state to `viewer.py`.
-- [ ] P3.2 Add ROI overlay drawing.
-- [ ] P3.3 Compute ROI summary through `src/lab5/envi_utils.py`.
-- [ ] P3.4 Add export flow wired to `src/lab5/spectral_library.py`.
-- [ ] P3.5 Rename the existing pixel export button so pixel and ROI exports are
+- [x] P3.1 Add rectangle ROI selection state to `viewer.py`.
+- [x] P3.2 Add ROI overlay drawing.
+- [x] P3.3 Compute ROI summary through `src/lab5/envi_utils.py`.
+- [x] P3.4 Add export flow wired to `src/lab5/spectral_library.py`.
+- [x] P3.5 Rename the existing pixel export button so pixel and ROI exports are
   clearly separate.
-- [ ] P3.6 Update the viewer status text to show current pixel or ROI state.
-- [ ] P3.7 Document the ROI workflow in `README.md`.
+- [x] P3.6 Update the viewer status text to show current pixel or ROI state.
+- [x] P3.7 Document the ROI workflow in `README.md`.
 
 Done when:
 
@@ -388,6 +388,26 @@ Verification:
   - draw one ROI
   - export one ROI sample
   - confirm raw sample and catalog entry were created
+
+P3 completion notes:
+
+- added rectangle ROI selection state and mouse press/move/release handling to
+  `viewer.py`
+- ROI rectangles are now drawn on the RGB panel, including drag-preview bounds
+- the right-hand plot now supports ROI mean spectra with standard-deviation
+  shading and ROI pixel statistics
+- added a viewer-level ROI export flow that writes directly into
+  `data/spectral_library/`
+- renamed the pixel export button to `Export pixel spectrum to CSV...`
+- added a new `Export ROI sample...` button
+- updated status text for both pixel and ROI selections
+- documented the ROI workflow in `README.md`
+- `python3 -m compileall viewer.py src/lab5` passed
+- a `python3` real-data harness used `viewer.export_roi_sample_to_library(...)`
+  to create a raw ROI sample plus a catalog row in a temporary spectral-library
+  directory
+- a full interactive `python3 viewer.py` manual GUI test was not completed in
+  the sandbox
 
 ## Phase P4. Airborne Index Pipeline
 

@@ -9,7 +9,9 @@ collection, airborne water-quality analysis, Sentinel-2 comparison, and SAM.
 - Loads any ENVI/BSQ image from `data/images/` (reads the `.hdr` sidecar for metadata)
 - Displays an RGB preview using the bands declared in `default_bands` of the header
 - Click any pixel to see its full spectral signature as a chart
-- Export the selected spectrum to a two-column CSV (`wavelength_nm`, `value`)
+- Drag a rectangle ROI to inspect its mean spectrum and variability
+- Export the selected pixel spectrum to a two-column CSV (`wavelength_nm`, `value`)
+- Export ROI samples directly into `data/spectral_library/` with class labels and notes
 
 ## Requirements
 
@@ -32,10 +34,10 @@ pip install spectral
 
 ```bash
 # auto-detect dataset in data/images/
-python viewer.py
+python3 viewer.py
 
 # open a specific file directly
-python viewer.py data/images/221000_Odra_HS_Blok_A_008_VS_join_atm.hdr
+python3 viewer.py data/images/221000_Odra_HS_Blok_A_008_VS_join_atm.hdr
 ```
 
 On startup the tool will:
@@ -43,8 +45,26 @@ On startup the tool will:
 1. Scan `data/images/` for `.hdr` files.
 2. If only one is found it opens immediately; if multiple are found a small picker dialog appears.
 3. The RGB preview loads (reads 3 bands — fast even for large cubes).
-4. Click any pixel → spectral signature appears on the right.
-5. Click **Export spectrum to CSV…** to save the current spectrum.
+4. Click any pixel → its spectral signature appears on the right.
+5. Drag a rectangle ROI → the mean ROI spectrum and standard deviation appear on the right.
+6. Click **Export pixel spectrum to CSV…** to save the current pixel spectrum.
+7. Click **Export ROI sample…** to save the ROI into the spectral-library structure.
+
+## ROI Workflow
+
+The ROI workflow is the main path for building the Lab 5 spectral library.
+
+1. Open a scene in the viewer.
+2. Drag a rectangle over a representative land-cover patch.
+3. Review the ROI bounds and valid-pixel count shown in the status text.
+4. Click **Export ROI sample…**.
+5. Enter a class label such as `water`, `forest`, or `green vegetation`.
+6. Optionally add notes describing the sample.
+
+Exports are written to:
+
+- `data/spectral_library/raw/<class_name>/<sample_id>.csv`
+- `data/spectral_library/catalog.csv`
 
 ## Project Layout
 
@@ -72,7 +92,8 @@ The tool reads standard ENVI headers (`.hdr` + `.bsq` pairs). The following head
 | `data ignore value` | No-data threshold; masked in both RGB and spectrum |
 | `reflectance scale factor` | Informational only (not applied automatically) |
 
-To adapt the tool to a different sensor, edit `get_rgb_bands()` and `FALLBACK_RGB` at the top of `viewer.py`.
+To adapt the tool to a different sensor, edit `get_rgb_bands()` and
+`FALLBACK_RGB` in `src/lab5/envi_utils.py`.
 
 ## Notes
 

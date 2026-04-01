@@ -44,7 +44,7 @@ These are the execution defaults unless the user changes them later:
 - [x] P4. Airborne index pipeline
 - [x] P5. Sentinel-2 acquisition pipeline
 - [x] P6. Cross-sensor alignment and comparison
-- [ ] P7. SAM and calibration
+- [x] P7. SAM and calibration
 - [ ] P8. Final notebook and documentation polish
 
 ## Exact Outputs To Deliver
@@ -663,11 +663,11 @@ Execution order inside this phase:
 
 Tasks:
 
-- [ ] P7.1 Extract or rewrite SAM logic from `Lab_3`.
-- [ ] P7.2 Implement reference-spectrum resampling to Sentinel-2 bands.
-- [ ] P7.3 Implement bandwise gain-offset calibration.
-- [ ] P7.4 Implement calibrated Sentinel-2 SAM.
-- [ ] P7.5 Add SAM outputs to the notebook.
+- [x] P7.1 Extract or rewrite SAM logic from `Lab_3`.
+- [x] P7.2 Implement reference-spectrum resampling to Sentinel-2 bands.
+- [x] P7.3 Implement bandwise gain-offset calibration.
+- [x] P7.4 Implement calibrated Sentinel-2 SAM.
+- [x] P7.5 Add SAM outputs to the notebook.
 
 Done when:
 
@@ -678,6 +678,30 @@ Verification:
 
 - `python -m compileall src/lab5`
 - manual notebook run of the SAM section
+
+P7 completion notes:
+
+- added `src/lab5/sam.py` with spectral-library summary loading, reference
+  alignment to target wavelength grids, Sentinel-2 reference resampling,
+  chunked spectral-angle computation, bandwise calibration, and SAM
+  classification helpers
+- extended `notebooks/water_quality_analysis.ipynb` with spectral-library
+  summary loading, calibration table export, resampled reference export,
+  airborne SAM, calibrated Sentinel-2 SAM, per-class angle comparisons, and SAM
+  class-map outputs
+- `python3 -m compileall src/lab5` passed
+- notebook JSON validation passed
+- real-data `python3` harness passed using the cached Sentinel-2 stack and a
+  temporary ROI-built spectral library from the airborne scene
+- verified temporary class-summary rebuilds for `water`, `green vegetation`, and
+  `forest`, calibration parameters for `B03`, `B04`, `B05`, `B06`, `B08`, and
+  `B11`, and successful airborne plus Sentinel-2 SAM class assignments over a
+  valid overlap subset
+- verified harness output files `calibration_params.csv` and
+  `sam_angle_stats.csv`
+- the repo notebook SAM section is wired to `data/spectral_library/summary/`
+  and will run once that library is populated; the current repo library is still
+  empty
 
 ## Phase P8. Final Notebook And Documentation Polish
 

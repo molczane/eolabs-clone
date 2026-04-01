@@ -1,6 +1,8 @@
 # Hyperspectral BSQ Viewer
 
-A minimal desktop tool for exploring ENVI/BSQ hyperspectral data cubes.
+A minimal desktop tool for exploring ENVI/BSQ hyperspectral data cubes. The
+repository is being extended into a full Lab 5 workflow for spectral-library
+collection, airborne water-quality analysis, Sentinel-2 comparison, and SAM.
 
 ## Features
 
@@ -43,6 +45,17 @@ On startup the tool will:
 3. The RGB preview loads (reads 3 bands — fast even for large cubes).
 4. Click any pixel → spectral signature appears on the right.
 5. Click **Export spectrum to CSV…** to save the current spectrum.
+
+## Project Layout
+
+- `viewer.py`: desktop viewer for browsing ENVI/BSQ scenes
+- `src/lab5/`: reusable processing code shared by the viewer and notebook
+- `scripts/`: command-line utilities such as spectral-library rebuild scripts
+- `notebooks/`: analysis notebooks for airborne and Sentinel-2 workflows
+- `data/images/`: input ENVI scenes
+- `data/spectral_library/`: exported ROI samples, catalog, and class summaries
+- `data/sentinel2/`: cached Sentinel-2 downloads
+- `data/outputs/`: generated plots, tables, and comparison outputs
 
 ## Data format assumptions
 

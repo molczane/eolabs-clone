@@ -25,102 +25,20 @@ matplotlib.use("TkAgg")
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
-try:
-    import spectral.io.envi as envi
-except ImportError:
-    sys.exit(
-        "The 'spectral' library is missing.\n"
-        "Install it with:  pip install spectral"
-    )
+from src.lab5.envi_utils import (
+    find_hdr_files,
+    get_ignore_value,
+    get_rgb_bands,
+    load_envi_image,
+    parse_wavelengths,
+    read_pixel_spectrum,
+    read_rgb,
+)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 # Default search directory (relative to this script)
 DATA_DIR = Path(__file__).parent / "data" / "images"
-
-# Fallback RGB band indices (0-based) when the header has no default_bands
-FALLBACK_RGB = (30, 20, 10)
-
-# ── ENVI header helpers ───────────────────────────────────────────────────────
-
-def find_hdr_files(directory: Path) -> list[Path]:
-    return sorted(directory.glob("*.hdr"))
-
-
-def parse_wavelengths(meta: dict) -> np.ndarray | None:
-    """Return wavelength array from ENVI metadata, or None if absent."""
-    wl = meta.get("wavelength")
-    if wl:
-        return np.array([float(w) for w in wl])
-    return None
-
-
-def get_rgb_bands(meta: dict) -> tuple[int, int, int]:
-    """
-    Read default_bands from the ENVI header.
-    Header values are 1-based floats, so we subtract 1.
-    Falls back to FALLBACK_RGB if the key is missing.
-    """
-    db = meta.get("default bands")
-    if db and len(db) >= 3:
-        return tuple(int(float(v)) - 1 for v in db[:3])
-    return FALLBACK_RGB
-
-
-def get_ignore_value(meta: dict) -> float | None:
-    """Return the no-data / ignore value declared in the ENVI header."""
-    raw = meta.get("data ignore value")
-    if raw:
-        try:
-            return float(str(raw).strip())
-        except ValueError:
-            pass
-    return None
-
-
-# ── Image I/O ─────────────────────────────────────────────────────────────────
-
-def load_image(hdr_path: Path):
-    """
-    Open an ENVI image via spectral (memory-mapped — no full load into RAM).
-    The companion .bsq file is located automatically next to the .hdr.
-    """
-    return envi.open(str(hdr_path))
-
-
-def read_rgb(img, r: int, g: int, b: int, ignore_value: float | None) -> np.ndarray:
-    """
-    Read three bands and return a float32 RGB array (values 0–1) for display.
-    No-data pixels and negative values are masked before the stretch.
-    Applies a per-channel 2–98 % percentile stretch.
-    """
-    # shape: (lines, samples, 3) — reads only 3 bands from disk
-    rgb = img.read_bands([r, g, b]).astype(np.float32)
-
-    if ignore_value is not None:
-        rgb[rgb >= ignore_value] = np.nan
-    rgb[rgb < 0] = np.nan
-
-    for c in range(3):
-        ch = rgb[:, :, c]
-        p2, p98 = np.nanpercentile(ch, [2, 98])
-        rgb[:, :, c] = np.clip((ch - p2) / max(p98 - p2, 1e-6), 0, 1)
-
-    return np.nan_to_num(rgb, nan=0.0)
-
-
-def read_spectrum(img, row: int, col: int, ignore_value: float | None) -> np.ndarray:
-    """
-    Read the full spectrum (all bands) for a single pixel.
-    BSQ layout makes this efficient: one seek per band.
-    Bad / no-data values are replaced with NaN so the plot shows gaps.
-    """
-    spec = img.read_pixel(row, col).astype(np.float64)
-    if ignore_value is not None:
-        spec[spec >= ignore_value] = np.nan
-    spec[spec < 0] = np.nan
-    return spec
-
 
 # ── Application ───────────────────────────────────────────────────────────────
 
@@ -232,12 +150,12 @@ class HyperspectralViewer:
         self.status_var.set(f"Loading RGB bands from  {hdr_path.name} …")
         self.root.update_idletasks()
         try:
-            self.img = load_image(hdr_path)
+            self.img = load_envi_image(hdr_path)
             meta = self.img.metadata
             self.wavelengths = parse_wavelengths(meta)
             self.ignore_value = get_ignore_value(meta)
             r, g, b = get_rgb_bands(meta)
-            self.rgb_display = read_rgb(self.img, r, g, b, self.ignore_value)
+            self.rgb_display = read_rgb(self.img, (r, g, b), self.ignore_value)
             self.spectrum = None
             self.pixel_pos = None
             self._refresh_plots()
@@ -307,7 +225,7 @@ class HyperspectralViewer:
             return
 
         self.pixel_pos = (row, col)
-        self.spectrum = read_spectrum(self.img, row, col, self.ignore_value)
+        self.spectrum = read_pixel_spectrum(self.img, row, col, self.ignore_value)
         self._refresh_plots()
         self.status_var.set(
             f"Pixel ({row}, {col})  |  "

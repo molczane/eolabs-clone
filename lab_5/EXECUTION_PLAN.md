@@ -45,7 +45,8 @@ These are the execution defaults unless the user changes them later:
 - [x] P5. Sentinel-2 acquisition pipeline
 - [x] P6. Cross-sensor alignment and comparison
 - [x] P7. SAM and calibration
-- [ ] P8. Final notebook and documentation polish
+- [x] P8. Final notebook and documentation polish
+- [ ] P9. Algae detection extension
 
 ## Exact Outputs To Deliver
 
@@ -78,10 +79,40 @@ These are the exact index products to implement in code:
 - Turbidity proxy:
   - `ndti = (R665 - R560) / (R665 + R560)`
 
+Algae detection indices (cross-sensor — airborne + Sentinel-2):
+
+- Normalized Difference Red Edge:
+  - `ndre = (R842 - R705) / (R842 + R705)`
+  - Sentinel-2: `(B08 - B05) / (B08 + B05)`
+  - sensitive to chlorophyll concentration in dense blooms
+- Floating Algae Index:
+  - `fai = R842 - (R665 + 0.1873 * (R1610 - R665))`
+  - Sentinel-2: `B08 - (B04 + 0.1873 * (B11 - B04))`
+  - detects surface scums and floating algal mats; NIR peak above RED–SWIR
+    baseline
+- Normalized Difference Water Index:
+  - `ndwi = (R560 - R842) / (R560 + R842)`
+  - Sentinel-2: `(B03 - B08) / (B03 + B08)`
+  - water mask: positive values → water, negative → land
+
+Algae detection indices (airborne only — narrow-band requirement):
+
+- Fluorescence Line Height:
+  - `flh = R681 - (R665 + 0.3636 * (R709 - R665))`
+  - measures chlorophyll fluorescence emission near 681 nm above the 665–709 nm
+    baseline
+  - NOT computable from Sentinel-2 (no 681 nm band)
+- Maximum Chlorophyll Index:
+  - `mci = R709 - (R681 + 0.3889 * (R753 - R681))`
+  - measures the 709 nm chlorophyll absorption peak above the 681–753 nm
+    baseline
+  - NOT computable from Sentinel-2 (no 681 nm band)
+
 Band mapping rules:
 
 - Airborne:
-  - pick nearest valid wavelengths to `560`, `665`, `705`, `740`, `842`, `1610`
+  - pick nearest valid wavelengths to `560`, `665`, `681`, `705`, `709`, `740`,
+    `753`, `842`, `1610`
 - Sentinel-2:
   - `B03` for 560 nm
   - `B04` for 665 nm
@@ -717,12 +748,12 @@ Files to create or edit:
 
 Tasks:
 
-- [ ] P8.1 Ensure the notebook order is coherent and fully narrative.
-- [ ] P8.2 Add short markdown explanations before each major section.
-- [ ] P8.3 Document how to run the viewer and how to collect ROI samples.
-- [ ] P8.4 Document how to rebuild the spectral library.
-- [ ] P8.5 Document how Sentinel-2 scene selection works.
-- [ ] P8.6 Document known limitations:
+- [x] P8.1 Ensure the notebook order is coherent and fully narrative.
+- [x] P8.2 Add short markdown explanations before each major section.
+- [x] P8.3 Document how to run the viewer and how to collect ROI samples.
+- [x] P8.4 Document how to rebuild the spectral library.
+- [x] P8.5 Document how Sentinel-2 scene selection works.
+- [x] P8.6 Document known limitations:
   - DOC is a proxy, not a calibrated concentration
   - rectangle ROIs only in v1
   - single-scene airborne workflow in v1
@@ -735,6 +766,100 @@ Verification:
 
 - open notebook and README side by side and check that all paths and commands
   are accurate
+
+P8 completion notes:
+
+- rewrote the notebook intro cell with a clear objective statement and numbered
+  pipeline overview
+- enhanced all 10 section markdown cells with explanations of why each step
+  matters, what the indices measure, band-mapping tables, and algorithm
+  descriptions
+- added a Summary cell at the end of the notebook recapping all pipeline stages
+- rewrote `README.md` with comprehensive documentation covering:
+  - project layout tree
+  - step-by-step viewer and ROI collection workflow (P8.3)
+  - spectral library rebuild instructions (P8.4)
+  - Sentinel-2 scene selection algorithm description (P8.5)
+  - known limitations section (P8.6)
+  - notebook execution instructions
+- all P8 checkboxes marked complete in this file
+
+## Phase P9. Algae Detection Extension
+
+Goal:
+
+- Add algae-specific spectral indices and update the notebook for bloom
+  detection analysis. Extend the spectral library with algae and sediment
+  classes.
+
+Rationale:
+
+- NDCI (already exists) is the primary bridge index for chlorophyll-a between
+  airborne and Sentinel-2.
+- NDRE adds sensitivity to dense blooms where NDCI saturates.
+- FAI detects floating algae mats and surface scums via the NIR peak.
+- NDWI provides a water/land mask to focus algae analysis on water pixels only.
+- FLH and MCI exploit narrow-band chlorophyll fluorescence features available
+  only in the airborne hyperspectral data.
+
+Files to create or edit:
+
+- `src/lab5/indices.py`
+- `notebooks/water_quality_analysis.ipynb`
+- `README.md`
+- `EXECUTION_PLAN.md`
+- `IMPLEMENTATION_PLAN.md`
+
+Tasks:
+
+- [ ] P9.1 Add `ndre()`, `fai()`, `ndwi()` functions to `indices.py`.
+- [ ] P9.2 Add `flh()`, `mci()` (airborne-only) functions to `indices.py`.
+- [ ] P9.3 Update notebook imports cell to include new index functions.
+- [ ] P9.4 Expand airborne index computation cell:
+  - extract bands at 681, 709, 753 nm
+  - compute all 9 indices (4 existing + 5 new)
+  - expand subplot grid from 2×2 to 3×3
+- [ ] P9.5 Add an algae detection analysis section to the notebook:
+  - NDWI water mask
+  - water-only statistics for NDCI, NDRE, FAI, FLH, MCI
+  - water-masked index maps
+- [ ] P9.6 Expand cross-sensor comparison with NDRE, FAI, NDWI:
+  - compute Sentinel-2 versions of the three new cross-sensor indices
+  - add them to the comparison plots and stats table
+  - FLH and MCI are excluded from comparison (airborne only)
+- [ ] P9.7 Collect algae and sediment ROI samples using the viewer.
+- [ ] P9.8 Rebuild spectral library with new classes.
+- [ ] P9.9 Update README with algae detection documentation.
+- [ ] P9.10 Update notebook markdown cells with algae context.
+
+New spectral library classes to collect:
+
+- `algae` — ROIs over visibly green or turbid water with elevated chlorophyll
+  signatures
+- `sediment` — ROIs over water with high suspended sediment but no algal bloom
+  signatures (to help SAM distinguish turbidity from algae)
+
+No new Sentinel-2 bands required:
+
+- NDRE uses B05 (705 nm) + B08 (842 nm) — already downloaded
+- FAI uses B04 (665 nm) + B08 (842 nm) + B11 (1610 nm) — already downloaded
+- NDWI uses B03 (560 nm) + B08 (842 nm) — already downloaded
+
+Done when:
+
+- All 5 new index functions compile and pass basic tests.
+- The notebook computes 9 airborne indices and 7 cross-sensor indices.
+- The algae detection section uses NDWI to mask water and reports water-only
+  statistics.
+- The spectral library includes algae and sediment classes.
+- SAM classification automatically picks up the new classes.
+
+Verification:
+
+- `python -m compileall src/lab5`
+- execute the full notebook end to end
+- confirm the new index maps, water mask, and comparison outputs render
+  correctly
 
 ## Recommended Implementation Order By Turn
 
@@ -749,6 +874,7 @@ When executing with Codex, the safest turn-by-turn order is:
 7. `P6`
 8. `P7`
 9. `P8`
+10. `P9`
 
 This order is intentional:
 

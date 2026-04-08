@@ -193,6 +193,59 @@ Planned standard formulas:
   - optional extension: Dogliotti single-band turbidity algorithm if the
     reflectance and atmospheric-correction assumptions hold well enough
 
+Planned algae detection indices (cross-sensor — airborne + Sentinel-2):
+
+- Normalized Difference Red Edge (NDRE):
+  - `ndre = (R842 - R705) / (R842 + R705)`
+  - Sentinel-2: `(B08 - B05) / (B08 + B05)`
+  - sensitive to chlorophyll in dense blooms where NDCI saturates
+- Floating Algae Index (FAI):
+  - `fai = R842 - (R665 + ((842 - 665) / (1610 - 665)) * (R1610 - R665))`
+  - slope constant: `(842 - 665) / (1610 - 665) ≈ 0.1873`
+  - Sentinel-2: `B08 - (B04 + 0.1873 * (B11 - B04))`
+  - detects floating algae mats and surface scums via the NIR reflectance peak
+    above the RED–SWIR baseline; positive values indicate floating vegetation
+    or algae on the water surface
+- Normalized Difference Water Index (NDWI, McFeeters 1996):
+  - `ndwi = (R560 - R842) / (R560 + R842)`
+  - Sentinel-2: `(B03 - B08) / (B03 + B08)`
+  - positive values → water; negative values → land
+  - used as a water mask before algae index analysis
+
+Planned algae detection indices (airborne only — narrow-band requirement):
+
+- Fluorescence Line Height (FLH):
+  - `flh = R681 - (R665 + ((681 - 665) / (709 - 665)) * (R709 - R665))`
+  - slope constant: `(681 - 665) / (709 - 665) ≈ 0.3636`
+  - measures chlorophyll fluorescence emission near 681 nm above the 665–709 nm
+    baseline
+  - requires narrow bands near 665, 681, and 709 nm; NOT computable from
+    Sentinel-2 because Sentinel-2 lacks a 681 nm band
+- Maximum Chlorophyll Index (MCI):
+  - `mci = R709 - (R681 + ((709 - 681) / (753 - 681)) * (R753 - R681))`
+  - slope constant: `(709 - 681) / (753 - 681) ≈ 0.3889`
+  - measures the 709 nm chlorophyll absorption peak above the 681–753 nm
+    baseline; sensitive to high chlorophyll concentrations in intense blooms
+  - requires narrow bands near 681, 709, and 753 nm; NOT computable from
+    Sentinel-2
+
+Planned algae detection workflow in the notebook:
+
+1. Compute all 9 indices (4 existing + 5 new) from the airborne cube.
+2. Apply the NDWI water mask (NDWI > 0) to isolate water pixels.
+3. Analyse NDCI, NDRE, FAI, FLH, and MCI over water pixels only.
+4. Compute Sentinel-2 versions of NDRE, FAI, and NDWI (FLH and MCI are
+   airborne-only) and add them to the cross-sensor comparison.
+5. Collect spectral-library ROIs for new classes (`algae`, `sediment`) and
+   rebuild the library; SAM will automatically pick up the new classes.
+
+New spectral library target classes:
+
+- `algae` — ROIs over visibly green or turbid water patches with elevated
+  chlorophyll signatures (the target detection class)
+- `sediment` — ROIs over water with high suspended sediment but no algal bloom
+  signatures (helps SAM distinguish turbidity from actual algae)
+
 Important terminology note:
 
 - Chl-a and turbidity are straightforward to treat as spectral indices or
@@ -201,6 +254,9 @@ Important terminology note:
 - The defensible plan is to compute a CDOM-style optical proxy and label it
   clearly in code and notebook text, while still matching the assignment wording
   in the section titles.
+- FLH and MCI are airborne-only diagnostics because they exploit narrow-band
+  chlorophyll fluorescence features that Sentinel-2's broad bands cannot
+  resolve.
 
 ### 4. Sentinel-2 Retrieval and Alignment
 

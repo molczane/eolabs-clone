@@ -307,7 +307,9 @@ class HyperspectralViewer:
                 else np.arange(len(self.spectrum))
             )
             xlabel = "Wavelength (nm)" if self.wavelengths is not None else "Band index"
+            self._shade_invalid_bands(self.ax_spec)
             self.ax_spec.plot(x, self.spectrum, linewidth=1.2, color="steelblue")
+            self._set_robust_ylim(self.ax_spec, self.spectrum)
             self.ax_spec.set_title(f"Spectral signature — row {row},  col {col}")
             self.ax_spec.set_xlabel(xlabel)
             self.ax_spec.set_ylabel("Reflectance (× 10⁻⁴)")
@@ -325,6 +327,35 @@ class HyperspectralViewer:
         self.fig.tight_layout(pad=2.5)
         self.canvas.draw()
 
+    # ── Spectrum plot helpers ─────────────────────────────────────────────────
+
+    def _shade_invalid_bands(self, ax):
+        """Shade wavelength regions corresponding to invalid bands in light gray."""
+        if self.wavelengths is None or self.invalid_band_mask is None:
+            return
+        wl = self.wavelengths
+        mask = self.invalid_band_mask
+        in_span = False
+        span_start = None
+        for i, is_bad in enumerate(mask):
+            if is_bad and not in_span:
+                span_start = wl[i]
+                in_span = True
+            elif not is_bad and in_span:
+                ax.axvspan(span_start, wl[i - 1], color="#dddddd", alpha=0.5)
+                in_span = False
+        if in_span:
+            ax.axvspan(span_start, wl[-1], color="#dddddd", alpha=0.5)
+
+    def _set_robust_ylim(self, ax, spectrum: np.ndarray):
+        """Set y-axis limits to the 2nd–98th percentile of valid values."""
+        valid = spectrum[np.isfinite(spectrum)]
+        if valid.size == 0:
+            return
+        lo, hi = np.percentile(valid, [2, 98])
+        margin = max((hi - lo) * 0.08, 1e-6)
+        ax.set_ylim(lo - margin, hi + margin)
+
     # ── Mouse click handler ───────────────────────────────────────────────────
 
     def _draw_roi_spectrum(self):
@@ -341,6 +372,7 @@ class HyperspectralViewer:
         std_spectrum = np.asarray(self.roi_summary["std_spectrum"], dtype=np.float64)
         valid_mask = ~np.isnan(mean_spectrum)
 
+        self._shade_invalid_bands(self.ax_spec)
         self.ax_spec.plot(x, mean_spectrum, linewidth=1.4, color="darkorange")
         self.ax_spec.fill_between(
             x,
@@ -350,6 +382,7 @@ class HyperspectralViewer:
             color="orange",
             alpha=0.2,
         )
+        self._set_robust_ylim(self.ax_spec, mean_spectrum)
         self.ax_spec.set_title(
             "ROI spectrum"
             f" — rows {row_min}:{row_max}, cols {col_min}:{col_max}"

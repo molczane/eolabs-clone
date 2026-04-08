@@ -46,7 +46,7 @@ These are the execution defaults unless the user changes them later:
 - [x] P6. Cross-sensor alignment and comparison
 - [x] P7. SAM and calibration
 - [x] P8. Final notebook and documentation polish
-- [ ] P9. Algae detection extension
+- [-] P9. Algae detection extension
 
 ## Exact Outputs To Deliver
 
@@ -812,25 +812,25 @@ Files to create or edit:
 
 Tasks:
 
-- [ ] P9.1 Add `ndre()`, `fai()`, `ndwi()` functions to `indices.py`.
-- [ ] P9.2 Add `flh()`, `mci()` (airborne-only) functions to `indices.py`.
-- [ ] P9.3 Update notebook imports cell to include new index functions.
-- [ ] P9.4 Expand airborne index computation cell:
+- [x] P9.1 Add `ndre()`, `fai()`, `ndwi()` functions to `indices.py`.
+- [x] P9.2 Add `flh()`, `mci()` (airborne-only) functions to `indices.py`.
+- [x] P9.3 Update notebook imports cell to include new index functions.
+- [x] P9.4 Expand airborne index computation cell:
   - extract bands at 681, 709, 753 nm
   - compute all 9 indices (4 existing + 5 new)
   - expand subplot grid from 2×2 to 3×3
-- [ ] P9.5 Add an algae detection analysis section to the notebook:
+- [x] P9.5 Add an algae detection analysis section to the notebook:
   - NDWI water mask
   - water-only statistics for NDCI, NDRE, FAI, FLH, MCI
   - water-masked index maps
-- [ ] P9.6 Expand cross-sensor comparison with NDRE, FAI, NDWI:
+- [x] P9.6 Expand cross-sensor comparison with NDRE, FAI, NDWI:
   - compute Sentinel-2 versions of the three new cross-sensor indices
   - add them to the comparison plots and stats table
   - FLH and MCI are excluded from comparison (airborne only)
 - [ ] P9.7 Collect algae and sediment ROI samples using the viewer.
 - [ ] P9.8 Rebuild spectral library with new classes.
-- [ ] P9.9 Update README with algae detection documentation.
-- [ ] P9.10 Update notebook markdown cells with algae context.
+- [x] P9.9 Update README with algae detection documentation.
+- [x] P9.10 Update notebook markdown cells with algae context.
 
 New spectral library classes to collect:
 

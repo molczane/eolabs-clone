@@ -12,7 +12,9 @@ from src.lab5.envi_utils import parse_map_info
 
 PLANETARY_COMPUTER_STAC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
 SENTINEL2_COLLECTION = "sentinel-2-l2a"
-SENTINEL2_REQUIRED_BANDS = ("B03", "B04", "B05", "B06", "B08", "B11")
+SENTINEL2_REQUIRED_BANDS = (
+    "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12",
+)
 
 SENTINEL2_BAND_ALIASES = {
     "B02": ("B02", "blue"),
@@ -20,9 +22,11 @@ SENTINEL2_BAND_ALIASES = {
     "B04": ("B04", "red"),
     "B05": ("B05",),
     "B06": ("B06",),
+    "B07": ("B07",),
     "B08": ("B08", "nir", "nir08"),
-    "B8A": ("B8A", "nir08"),
+    "B8A": ("B8A", "nir09"),
     "B11": ("B11", "swir16"),
+    "B12": ("B12", "swir22"),
 }
 
 

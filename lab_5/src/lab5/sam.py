@@ -10,8 +10,11 @@ import numpy as np
 from src.lab5.spectral_library import CATALOG_FILENAME, SUMMARY_DIRNAME
 
 
-SENTINEL2_SAM_BANDS = ("B03", "B04", "B05", "B06", "B08", "B11")
-SENTINEL2_TARGET_WAVELENGTHS = np.array((560.0, 665.0, 705.0, 740.0, 842.0, 1610.0), dtype=np.float64)
+SENTINEL2_SAM_BANDS = ("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12")
+SENTINEL2_TARGET_WAVELENGTHS = np.array(
+    (490.0, 560.0, 665.0, 705.0, 740.0, 783.0, 842.0, 865.0, 1610.0, 2190.0),
+    dtype=np.float64,
+)
 
 
 def _slugify(value: str) -> str:

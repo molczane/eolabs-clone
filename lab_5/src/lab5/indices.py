@@ -81,6 +81,70 @@ def ndti(r560, r665):
     return safe_ratio(_as_float_array(r665) - _as_float_array(r560), _as_float_array(r665) + _as_float_array(r560))
 
 
+def ndre(r705, r842):
+    """Normalized Difference Red Edge: (R842 - R705) / (R842 + R705).
+
+    Sensitive to chlorophyll in dense blooms. S2 bands: B05, B08.
+    """
+    return safe_ratio(
+        _as_float_array(r842) - _as_float_array(r705),
+        _as_float_array(r842) + _as_float_array(r705),
+    )
+
+
+def fai(r665, r842, r1610):
+    """Floating Algae Index: NIR peak above RED-SWIR baseline.
+
+    Detects surface scums and floating algal mats. S2 bands: B04, B08, B11.
+    """
+    r665_arr = _as_float_array(r665)
+    r842_arr = _as_float_array(r842)
+    r1610_arr = _as_float_array(r1610)
+    slope = (842.0 - 665.0) / (1610.0 - 665.0)
+    baseline = r665_arr + slope * (r1610_arr - r665_arr)
+    result = r842_arr - baseline
+    return result.item() if result.shape == () else result
+
+
+def ndwi(r560, r842):
+    """Normalized Difference Water Index: (R560 - R842) / (R560 + R842).
+
+    Water mask: positive → water, negative → land. S2 bands: B03, B08.
+    """
+    return safe_ratio(
+        _as_float_array(r560) - _as_float_array(r842),
+        _as_float_array(r560) + _as_float_array(r842),
+    )
+
+
+def flh(r665, r681, r709):
+    """Fluorescence Line Height at 681 nm above the 665-709 nm baseline.
+
+    Airborne only — Sentinel-2 lacks a 681 nm band.
+    """
+    r665_arr = _as_float_array(r665)
+    r681_arr = _as_float_array(r681)
+    r709_arr = _as_float_array(r709)
+    slope = (681.0 - 665.0) / (709.0 - 665.0)
+    baseline = r665_arr + slope * (r709_arr - r665_arr)
+    result = r681_arr - baseline
+    return result.item() if result.shape == () else result
+
+
+def mci(r681, r709, r753):
+    """Maximum Chlorophyll Index: 709 nm peak above the 681-753 nm baseline.
+
+    Airborne only — Sentinel-2 lacks a 681 nm band.
+    """
+    r681_arr = _as_float_array(r681)
+    r709_arr = _as_float_array(r709)
+    r753_arr = _as_float_array(r753)
+    slope = (709.0 - 681.0) / (753.0 - 681.0)
+    baseline = r681_arr + slope * (r753_arr - r681_arr)
+    result = r709_arr - baseline
+    return result.item() if result.shape == () else result
+
+
 def composite_by_wavelengths(
     cube_or_reader,
     wavelengths: np.ndarray,
@@ -131,8 +195,13 @@ __all__ = [
     "chlorophyll_red_edge_peak",
     "composite_by_wavelengths",
     "doc_proxy_green_red",
+    "fai",
+    "flh",
+    "mci",
     "ndci",
+    "ndre",
     "ndti",
+    "ndwi",
     "safe_ratio",
     "stretch_composite",
 ]

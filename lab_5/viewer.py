@@ -27,7 +27,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.patches import Rectangle
 
 from src.lab5.envi_utils import (
-    build_invalid_band_mask,
     find_hdr_files,
     get_ignore_value,
     get_rgb_bands,
@@ -124,7 +123,6 @@ class HyperspectralViewer:
         self.wavelengths: np.ndarray | None = None
         self.ignore_value: float | None = None
         self.map_info = None
-        self.invalid_band_mask: np.ndarray | None = None
         self.rgb_display: np.ndarray | None = None   # float32 (lines, samples, 3)
         self.spectrum: np.ndarray | None = None      # 1-D, last clicked pixel
         self.pixel_pos: tuple[int, int] | None = None
@@ -243,7 +241,6 @@ class HyperspectralViewer:
             self.wavelengths = parse_wavelengths(meta)
             self.ignore_value = get_ignore_value(meta)
             self.map_info = parse_map_info(meta)
-            self.invalid_band_mask = build_invalid_band_mask(meta)
             r, g, b = get_rgb_bands(meta)
             self.rgb_display = read_rgb(self.img, (r, g, b), self.ignore_value)
             self.spectrum = None
@@ -307,7 +304,6 @@ class HyperspectralViewer:
                 else np.arange(len(self.spectrum))
             )
             xlabel = "Wavelength (nm)" if self.wavelengths is not None else "Band index"
-            self._shade_invalid_bands(self.ax_spec)
             self.ax_spec.plot(x, self.spectrum, linewidth=1.2, color="steelblue")
             self._set_robust_ylim(self.ax_spec, self.spectrum)
             self.ax_spec.set_title(f"Spectral signature — row {row},  col {col}")
@@ -328,24 +324,6 @@ class HyperspectralViewer:
         self.canvas.draw()
 
     # ── Spectrum plot helpers ─────────────────────────────────────────────────
-
-    def _shade_invalid_bands(self, ax):
-        """Shade wavelength regions corresponding to invalid bands in light gray."""
-        if self.wavelengths is None or self.invalid_band_mask is None:
-            return
-        wl = self.wavelengths
-        mask = self.invalid_band_mask
-        in_span = False
-        span_start = None
-        for i, is_bad in enumerate(mask):
-            if is_bad and not in_span:
-                span_start = wl[i]
-                in_span = True
-            elif not is_bad and in_span:
-                ax.axvspan(span_start, wl[i - 1], color="#dddddd", alpha=0.5)
-                in_span = False
-        if in_span:
-            ax.axvspan(span_start, wl[-1], color="#dddddd", alpha=0.5)
 
     def _set_robust_ylim(self, ax, spectrum: np.ndarray):
         """Set y-axis limits to the 2nd–98th percentile of valid values."""
@@ -372,7 +350,6 @@ class HyperspectralViewer:
         std_spectrum = np.asarray(self.roi_summary["std_spectrum"], dtype=np.float64)
         valid_mask = ~np.isnan(mean_spectrum)
 
-        self._shade_invalid_bands(self.ax_spec)
         self.ax_spec.plot(x, mean_spectrum, linewidth=1.4, color="darkorange")
         self.ax_spec.fill_between(
             x,
@@ -436,12 +413,13 @@ class HyperspectralViewer:
 
     def _select_pixel(self, row: int, col: int):
         self.pixel_pos = (row, col)
+        # Do not pass invalid_band_mask — the "bad" bands in the O2-A
+        # absorption region (689-737 nm) contain usable reflectance data.
         self.spectrum = read_pixel_spectrum(
             self.img,
             row,
             col,
             self.ignore_value,
-            self.invalid_band_mask,
         )
         self.active_selection = "pixel"
         self._refresh_plots()
@@ -456,7 +434,6 @@ class HyperspectralViewer:
         self.roi_summary = summarize_roi_spectra(
             roi_cube,
             self.ignore_value,
-            self.invalid_band_mask,
         )
         self.roi_bounds = bounds
         self.active_selection = "roi"
